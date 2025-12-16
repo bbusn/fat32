@@ -1,5 +1,5 @@
-# MAC OS
-.DS_Store
+# Fat32 Test image
+test.img
 
 # RUST
 /target
