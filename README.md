@@ -5,7 +5,7 @@ A basic implementation of fat32 written in Rust **no_std**
 
 ## Create an image for testing
 
-*We first need to create a fat32 test image*
+We first need to create a fat32 test image in order to be able to use our library on it
 
 **Linux**
 
