@@ -3,58 +3,58 @@
 
 A basic implementation of fat32 written in Rust **no_std**
 
-## Installation
+## Create an image for testing
 
 *We first need to create a fat32 test image*
 
-### Linux
+**Linux**
 
-1. Create the file
+1. Create the file called "test.img"
 
 ```bash
-dd if=/dev/zero of=fat32.img bs=1M count=64
+dd if=/dev/zero of=test.img bs=1M count=64
 ```
 
 2. Format it to fat32
 
 ```bash
-mkfs.fat -F 32 fat32.img
+mkfs.fat -F 32 test.img
 ```
 
-3. Mount it
-
-Create the directory
+3. Create the directory to mount it
 
 ```bash
 sudo mkdir -p /mnt/fat32test
 ```
 
-Mount it
+4. Mount it
 
 ```bash
-sudo mount -o loop fat32.img /mnt/fat32test
+sudo mount -o loop test.img /mnt/fat32test
 ```
 
-4. Add test files and folders in it
-
-Create a file at the root
+5. Create a file at the root of this image
 
 ```bash
 echo "This is a file" > /mnt/fat32test/file.txt
 ```
-Create a folder
+
+6. Create a folder
 
 ```bash
 mkdir /mnt/fat32test/folder
 ```
-Create a file in this folder
+
+7. Create a file in this folder
 
 ```bash
 echo "This is a file" > /mnt/fat32test/folder/file.txt
 ```
 
-5. Unmount the image
+8. Unmount the image
 
 ```bash
 sudo umount /mnt/fat32test
 ```
+
+You're done and can test the lib with this test.img
