@@ -87,3 +87,16 @@ pub fn print<const N: usize>(val: &[u8; N]) {
 
     write(STDOUT_FILENO, ptr, len);
 }
+
+fn print_hex(byte: u8) {
+	let buf = [
+		/* Keep the 4 left bits */
+		HEX[(byte >> 4) as usize],
+		/* Keep the 4 right bits */
+		HEX[(byte & 0x0F) as usize],
+		/* Empty string */
+		b' ',
+	];
+	 
+	print(&buf);
+}
