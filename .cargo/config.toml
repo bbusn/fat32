@@ -1,6 +1,5 @@
 [build]
 # Linux x86_64
 target = "x86_64-unknown-linux-gnu"
-
-# Do not import _start function
+# Do not import _start
 rustflags = ["-C", "link-arg=-nostartfiles"]
