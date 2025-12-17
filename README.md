@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://github.com/bbusn/fat32/blob/main/readme/pirate.gif" width="600" />
+  <img src="https://github.com/bbusn/fat32/blob/main/readme/pirate.gif" width="500" />
 
 # fat32 - driver
 
@@ -73,6 +73,9 @@ sudo rm -rf /mnt/fat32test
 
 You're done and can test the lib with this test.img
 
-<br><br>
+<div align="center">
+	<img src="https://github.com/bbusn/fat32/blob/main/readme/excited.gif" width="200" />
 
-<img src="https://github.com/bbusn/fat32/blob/main/readme/excited.gif" width="250" />
+</div>
+
+<br><br>
