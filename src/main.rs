@@ -5,20 +5,22 @@ mod mem;
 mod syscalls;
 
 use core::panic::PanicInfo;
-use syscalls::{exit, open, read, close};
+use syscalls::{exit, open, read, close, print};
 
 /* ---------- Main function ---------- */
 #[unsafe(no_mangle)]
-pub extern "C" fn _start() {
+pub extern "C" fn _start() -> ! {
     let path = b"test.img\0";
     
     let fd = open(path.as_ptr());
 
     if fd < 0 {
+        print(b"Error when opening image file\n\0");
         exit(1);
     };
 
 
+    /* ---------- Boot sector ---------- */
     let mut boot_sector = [0u8; 512];
 
     let r = read(fd as usize, boot_sector.as_mut_ptr(), 512);
@@ -26,16 +28,24 @@ pub extern "C" fn _start() {
     close(fd as usize);
 
     if r < 0 {
+	print(b"Error when opening boot sector\n\0");
         exit(1);
     }
+    
+    if boot_sector[510] != 0x55 || boot_sector[511] != 0xAA {
+        print(b"Boot sector signature is invalid\n\0");
+	exit(1);	
+    }
 
-    exit(0);
+    loop {}
+    // exit(0);
 }
 
 /* We need to implement this panic handler in no_std */
 #[panic_handler]
 fn panic(_info: &PanicInfo) -> ! {
-    /* If it panic we only exit */
+    /* If it panic we exit */
+    print(b"It panicked...\n\0");
     exit(1);
     loop {}
 }

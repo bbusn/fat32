@@ -1,5 +1,6 @@
 pub const RDONLY_0: usize = 0;
 pub const AT_FDCWD: isize = -100;
+pub const STDOUT_FILENO: usize = 1;
 
 #[cfg(target_arch = "x86_64")]
 mod sys_numbers {
@@ -7,14 +8,17 @@ mod sys_numbers {
     pub const OPEN_AT: usize = 257;
     pub const READ: usize = 0;
     pub const CLOSE: usize = 3;
+    pub const WRITE: usize = 1;
 }
 
+/* Adding aarch64 syscalls because i'm on mac */
 #[cfg(target_arch = "aarch64")]
 mod sys_numbers {
     pub const EXIT: usize = 93;
     pub const OPEN_AT: usize = 56;
     pub const READ: usize = 63;
     pub const CLOSE: usize = 57;
+    pub const WRITE: usize = 64;
 }
 
 #[inline(always)]
@@ -70,4 +74,15 @@ pub fn read(fd: usize, buffer: *mut u8, len: usize) -> isize {
 
 pub fn close(fd: usize) {
     syscall_1(sys_numbers::CLOSE, fd);
+}
+
+pub fn write(fd: usize, val: *const u8, len: usize) {
+	syscall_3(sys_numbers::WRITE, fd, val as usize, len);
+}
+
+pub fn print<const N: usize>(val: &[u8; N]) {
+    let ptr = val.as_ptr();
+    let len = N;
+
+    write(STDOUT_FILENO, ptr, len);
 }
