@@ -88,7 +88,7 @@ pub fn print<const N: usize>(val: &[u8; N]) {
     write(STDOUT_FILENO, ptr, len);
 }
 
-fn print_hex(byte: u8) {
+pub fn print_hex(byte: u8) {
     let buf = [
         /* Keep the 4 left bits */
         HEX[(byte >> 4) as usize],

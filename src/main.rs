@@ -35,9 +35,11 @@ pub extern "C" fn _start() -> ! {
         print(b"Boot sector signature is invalid\n\0");
         print(b"byte 510: \n\0");
         print_hex(boot_sector[510]);
+	print(b"\n\0");
         print(b"byte 511: \n\0");
         print_hex(boot_sector[511]);
-
+  	print(b"\n\0");
+	
         exit(1);
     }
 
