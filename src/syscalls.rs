@@ -1,24 +1,25 @@
-pub const RDONLY_0: usize = 0;
-pub const AT_FDCWD: isize = -100;
-pub const STDOUT_FILENO: usize = 1;
+static RDONLY_0: usize = 0;
+static AT_FDCWD: isize = -100;
+static STDOUT_FILENO: usize = 1;
+static HEX : &[u8; 16] = b"0123456789ABCDEF";
 
 #[cfg(target_arch = "x86_64")]
 mod sys_numbers {
-    pub const EXIT: usize = 60;
-    pub const OPEN_AT: usize = 257;
-    pub const READ: usize = 0;
-    pub const CLOSE: usize = 3;
-    pub const WRITE: usize = 1;
+    static EXIT: usize = 60;
+    static OPEN_AT: usize = 257;
+    static READ: usize = 0;
+    static CLOSE: usize = 3;
+    static WRITE: usize = 1;
 }
 
 /* Adding aarch64 syscalls because i'm on mac */
 #[cfg(target_arch = "aarch64")]
 mod sys_numbers {
-    pub const EXIT: usize = 93;
-    pub const OPEN_AT: usize = 56;
-    pub const READ: usize = 63;
-    pub const CLOSE: usize = 57;
-    pub const WRITE: usize = 64;
+    static EXIT: usize = 93;
+    static OPEN_AT: usize = 56;
+    static READ: usize = 63;
+    static CLOSE: usize = 57;
+    static WRITE: usize = 64;
 }
 
 #[inline(always)]
