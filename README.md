@@ -1,18 +1,9 @@
 <div align="center">
-    
-# **fat32**
-</div>
+  <img src="https://github.com/bbusn/fat32/blob/main/readme/pirate.gif" width="600" />
 
-<div align="center">
-  <img src="https://github.com/bbusn/fat32/blob/main/readme/pirate_pig.gif" width="500" />
-<br>
-<div align="center" width="500">
+# fat32 - driver
 
-```
-		           	 	A basic implementation of fat32 in no_std
-```
-</div>
-
+A basic implementation of fat32 in rust **no_std**
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)   [![Rust](https://img.shields.io/badge/rust-%23232.svg?logo=rust&logoColor=white)](https://rust-lang.org/)
 
@@ -20,6 +11,7 @@
 
 </div>
 
+## 💻 Testing
 
 We first need to create a fat32 test image in order to be able to use our library on it
 
@@ -82,3 +74,5 @@ sudo rm -rf /mnt/fat32test
 You're done and can test the lib with this test.img
 
 <br><br>
+
+<img src="https://github.com/bbusn/fat32/blob/main/readme/excited.gif" width="250" />
