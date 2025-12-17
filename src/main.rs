@@ -9,7 +9,7 @@ use syscalls::{close, exit, open, print, print_hex, read};
 
 /* ---------- Main function ---------- */
 #[unsafe(no_mangle)]
-pub extern "C" fn _start() -> ! {
+pub extern "C" fn _start() {
     let path = b"test.img\0";
 
     let fd = open(path.as_ptr());
@@ -43,8 +43,8 @@ pub extern "C" fn _start() -> ! {
         exit(1);
     }
 
-    loop {}
-    // exit(0);
+    // loop {}
+    exit(0);
 }
 
 /* We need to implement this panic handler in no_std */
