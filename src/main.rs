@@ -27,8 +27,8 @@ pub extern "C" fn _start() -> ! {
 
     close(fd as usize);
 
-    if r < 0 {
-	print(b"Error when opening boot sector\n\0");
+    if r != 512 {
+	print(b"Failed to read boot sector\n\0");
         exit(1);
     }
     
