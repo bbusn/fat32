@@ -1,7 +1,0 @@
-use alloc::string::String;
-
-pub struct File {
-	pub name: String;
-	pub size: 
-}
-
