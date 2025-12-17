@@ -1,4 +1,4 @@
-<br><br>
+<br>
 
 <div align="center">
   <img src="https://github.com/bbusn/fat32/blob/main/readme/pirate.gif" width="550" />

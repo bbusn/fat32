@@ -1,5 +1,11 @@
 [build]
+# Linux x86_64
+target = "x86_64-unknown-linux-gnu"
+
+[target]
+rustflags = ["-C", "link-arg=-nostartfiles"]
+
+# MacOS aarch64
+[target.'cfg(target_os = "macos")']
 target = "aarch64-unknown-linux-gnu"
 
-[target.aarch64-unknown-linux-gnu]
-rustflags = ["-C", "link-arg=-nostartfiles"]
