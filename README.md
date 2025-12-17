@@ -4,12 +4,12 @@
 </div>
 
 <div align="center">
-  <img src="https://github.com/bbusn/fat32/blob/main/readme/pirate_pig.gif" width="200" />
-
-<div align="center" width="300">
+  <img src="https://github.com/bbusn/fat32/blob/main/readme/pirate_pig.gif" width="500" />
+<br>
+<div align="center" width="500">
 
 ```
-           	 	A basic implementation of fat32 in no_std
+		           	 	A basic implementation of fat32 in no_std
 ```
 </div>
 
