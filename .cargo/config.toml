@@ -1,11 +1,6 @@
 [build]
-# x86_64
+# Linux x86_64
 target = "x86_64-unknown-linux-gnu"
 
-# no _start function
+# Do not import _start function
 rustflags = ["-C", "link-arg=-nostartfiles"]
-
-# aarch64
-[target.'cfg(target_arch = "aarch64")']
-target = "aarch64-unknown-linux-gnu"
-

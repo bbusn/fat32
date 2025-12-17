@@ -13,11 +13,26 @@ A basic implementation of fat32 in rust **no_std**
 
 </div>
 
-## 💻 Testing
+## 💻 Installation
+
+**Linux - x86_64**
+
+```bash
+cargo run
+```
+
+**macOs - aarch64**
+
+```bash
+cargo run --target aarch64-unknown-linux-gnu
+```
+<br><br>
+
+## 💿 Create a testing image
 
 We first need to create a fat32 test image in order to be able to use our library on it
 
-**Linux**
+**Linux, macOs**
 
 1. Create the file called "test.img"
 
