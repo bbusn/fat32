@@ -5,19 +5,21 @@
 extern crate std;
 
 mod mem;
-mod syscalls;
+mod sys;
 
 #[cfg(not(test))]
 use core::panic::PanicInfo;
 
-use syscalls::{close, exit, open, print, print_hex, read};
+use sys::{close, exit, open, print_bytes_hex, read, print};
 
+// When not testing, we need this func to call main for aarch64
 #[cfg(not(test))]
 #[unsafe(no_mangle)]
 fn __libc_start_main() {
     main();
 }
 
+// When not testing, we need this func for compiler for aarch64
 #[cfg(not(test))]
 #[unsafe(no_mangle)]
 fn abort() {
@@ -32,7 +34,7 @@ fn main() {
     let fd = open(path.as_ptr());
 
     if fd < 0 {
-        print(b"Error when opening image file\n\0");
+        print("Error when opening image disk.img file, are you at the root directory?");
         exit(1);
     };
 
@@ -44,18 +46,13 @@ fn main() {
     close(fd as usize);
 
     if r != 512 {
-        print(b"Failed to read boot sector\n\0");
+        print("Failed to read boot sector");
         exit(1);
     }
 
     if boot_sector[510] != 0x55 || boot_sector[511] != 0xAA {
-        print(b"Boot sector signature is invalid\n\0");
-        print(b"byte 510: \n\0");
-        print_hex(boot_sector[510]);
-        print(b"\n\0");
-        print(b"byte 511: \n\0");
-        print_hex(boot_sector[511]);
-        print(b"\n\0");
+        print("Boot sector signature is invalid");
+        print_bytes_hex(&boot_sector[510..512]);
 
         exit(1);
     }
@@ -69,7 +66,7 @@ fn main() {
 #[panic_handler]
 fn panic(_info: &PanicInfo) -> ! {
     /* If it panic we exit */
-    print(b"It panicked...\n\0");
+    print("It panicked...");
     exit(1);
     loop {}
 }
