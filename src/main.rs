@@ -68,7 +68,7 @@ fn main() {
     /* ---------- Localize FATs ---------- */
        
 
-    loop {}
+    exit(0);
 }
 
 /* We need to implement this panic handler in no_std */
