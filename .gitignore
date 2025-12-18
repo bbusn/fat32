@@ -1,5 +1,5 @@
 # Fat32 test image
-test.img
+disk.img
 
 # Rust
 /target
