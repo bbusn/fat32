@@ -4,14 +4,17 @@
 #[cfg(test)]
 extern crate std;
 
-mod cli;
 mod sys;
+mod cli;
+mod helpers;
+mod boot_sector;
 
 #[cfg(not(test))]
 use core::panic::PanicInfo;
 
 use crate::cli::{init_cli, print, print_bytes_hex};
 use crate::sys::{close, exit, open, read};
+use boot_sector::{ verify_boot_sector_signature };
 
 // When not testing, we need this func to call main for aarch64
 #[cfg(not(test))]
@@ -53,7 +56,7 @@ fn main() {
         exit(1);
     }
 
-    if boot_sector[510] != 0x55 || boot_sector[511] != 0xAA {
+    if verify_boot_sector_signature(&boot_sector) != true {
         print("Boot sector signature is invalid");
         print_bytes_hex(&boot_sector[510..512]);
 
