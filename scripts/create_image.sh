@@ -1,16 +1,16 @@
 #!/bin/sh
 
 # Create the file called "test.img"
-dd if=/dev/zero of=test.img bs=1M count=64
+dd if=/dev/zero of=disk.img bs=1M count=64
 
 # Format it to fat32
-mkfs.fat -F 32 -I test.img
+mkfs.fat -F 32 -I disk.img
 
 # Create the directory to mount it
 sudo mkdir -p /mnt/fat32test
 
 # Mount it
-sudo mount -o loop,uid=$(id -u),gid=$(id -g) test.img /mnt/fat32test
+sudo mount -o loop,uid=$(id -u),gid=$(id -g) disk.img /mnt/fat32test
 
 # Create a file at the root of this image
 echo "This is a file" > /mnt/fat32test/file.txt

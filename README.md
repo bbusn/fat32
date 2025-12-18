@@ -34,64 +34,22 @@ We first need to create a fat32 test image in order to be able to use our librar
 
 **Linux, macOs**
 
-1. Create the file called "test.img"
+1. Make the script executable
 
 ```bash
-dd if=/dev/zero of=test.img bs=1M count=10
+chmod 755 scripts/create_image.sh
 ```
 
-2. Format it to fat32
+2. Execute it to create the image
 
 ```bash
-mkfs.fat -F 32 -I test.img
+sudo ./scripts/create_image.sh
 ```
 
-3. Create the directory to mount it
-
-```bash
-sudo mkdir -p /mnt/fat32test
-```
-
-4. Mount it
-
-```bash
-sudo mount -o loop,uid=$(id -u),gid=$(id -g) test.img /mnt/fat32test
-```
-
-5. Create a file at the root of this image
-
-```bash
-echo "This is a file" > /mnt/fat32test/file.txt
-```
-
-6. Create a folder
-
-```bash
-mkdir /mnt/fat32test/folder
-```
-
-7. Create a file in this folder
-
-```bash
-echo "This is a file" > /mnt/fat32test/folder/file.txt
-```
-
-8. Unmount the image
-
-```bash
-sudo umount /mnt/fat32test
-```
-
-9. Remove the directory created
-
-```bash
-sudo rm -rf /mnt/fat32test
-```
-
-You're done and can test the lib with this test.img
+You're done and can test the lib with this disk.img
 
 <div align="center">
-	<img src="https://github.com/bbusn/fat32/blob/main/readme/excited.gif" width="200" />
+	<img src="https://github.com/bbusn/fat32/blob/main/readme/excited.gif" width="175" />
 
 </div>
 
