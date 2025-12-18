@@ -37,7 +37,7 @@ We first need to create a fat32 test image in order to be able to use our librar
 1. Create the file called "test.img"
 
 ```bash
-dd if=/dev/zero of=test.img bs=1M count=64
+dd if=/dev/zero of=test.img bs=1M count=10
 ```
 
 2. Format it to fat32
