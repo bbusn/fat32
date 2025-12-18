@@ -29,7 +29,7 @@ fn abort() {
 /* ---------- Main function ---------- */
 #[unsafe(no_mangle)]
 fn main() {
-    let path = b"test.img\0";
+    let path = b"disk.img\0";
 
     let fd = open(path.as_ptr());
 
