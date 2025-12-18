@@ -1,5 +1,4 @@
-use crate::sys::statics::{ AT_FDCWD, RDONLY_0, STDOUT_FILENO };
-
+use crate::sys::consts::{AT_FDCWD, RDONLY_0, STDOUT_FILENO};
 
 pub mod syscalls {
     pub const EXIT: usize = 93;

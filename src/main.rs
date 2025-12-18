@@ -4,13 +4,14 @@
 #[cfg(test)]
 extern crate std;
 
-mod mem;
+mod cli;
 mod sys;
 
 #[cfg(not(test))]
 use core::panic::PanicInfo;
 
-use sys::{close, exit, open, print_bytes_hex, read, print};
+use crate::cli::{init_cli, print, print_bytes_hex};
+use crate::sys::{close, exit, open, read};
 
 // When not testing, we need this func to call main for aarch64
 #[cfg(not(test))]
@@ -29,6 +30,8 @@ fn abort() {
 /* ---------- Main function ---------- */
 #[unsafe(no_mangle)]
 fn main() {
+    init_cli();
+
     let path = b"disk.img\0";
 
     let fd = open(path.as_ptr());
