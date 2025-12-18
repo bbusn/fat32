@@ -47,7 +47,12 @@ pub fn exit(code: usize) {
 }
 
 pub fn open(path: *const u8) -> isize {
-    syscall_3(sys_numbers::OPEN_AT, AT_FDCWD as usize, path as usize, RDONLY_0)
+    syscall_3(
+        sys_numbers::OPEN_AT,
+        AT_FDCWD as usize,
+        path as usize,
+        RDONLY_0,
+    )
 }
 
 pub fn read(fd: usize, buffer: *mut u8, len: usize) -> isize {
@@ -67,10 +72,6 @@ pub fn print<const N: usize>(val: &[u8; N]) {
 }
 
 pub fn print_hex(byte: u8) {
-    let buf = [
-        HEX[(byte >> 4) as usize],
-        HEX[(byte & 0x0F) as usize],
-        b' ',
-    ];
+    let buf = [HEX[(byte >> 4) as usize], HEX[(byte & 0x0F) as usize], b' '];
     print(&buf);
 }

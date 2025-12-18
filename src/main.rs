@@ -1,5 +1,8 @@
-#![cfg_attr(not(test), no_std)]
-#![cfg_attr(not(test), no_main)]
+#![no_std]
+#![no_main]
+
+#[cfg(test)]
+extern crate std;
 
 mod mem;
 mod syscalls;
@@ -9,10 +12,23 @@ use core::panic::PanicInfo;
 
 use syscalls::{close, exit, open, print, print_hex, read};
 
-/* ---------- Main function ---------- */
+
 #[cfg(not(test))]
 #[unsafe(no_mangle)]
-pub extern "C" fn _start() {
+fn __libc_start_main() {
+	main();	
+}
+
+#[cfg(not(test))]
+#[unsafe(no_mangle)]
+fn abort() {
+        exit(1);
+}
+
+
+/* ---------- Main function ---------- */
+#[unsafe(no_mangle)]
+fn main() {
     let path = b"test.img\0";
 
     let fd = open(path.as_ptr());
@@ -46,31 +62,23 @@ pub extern "C" fn _start() {
         exit(1);
     }
 
+    // loop {}
     exit(0);
 }
 
-/* ---------- Panic handler ---------- */
+/* We need to implement this panic handler in no_std */
 #[cfg(not(test))]
 #[panic_handler]
 fn panic(_info: &PanicInfo) -> ! {
-    /* If it panics, we exit */
+    /* If it panic we exit */
     print(b"It panicked...\n\0");
     exit(1);
     loop {}
 }
 
-/* This is required for no_std */
+/* This is not called but required when no_std so the compiler don't complain */
 #[cfg(not(test))]
 #[unsafe(no_mangle)]
 pub extern "C" fn rust_eh_personality() {}
 
-/* ---------- Testing entry point ---------- */
-#[cfg(test)]
-mod tests {
-    use super::*;
 
-    #[test]
-    fn dummy_test() {
-        assert_eq!(2 + 2, 4);
-    }
-}

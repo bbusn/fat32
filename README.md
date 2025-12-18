@@ -18,13 +18,13 @@ A basic implementation of fat32 in rust **no_std**
 **Linux - x86_64**
 
 ```bash
-cargo run
+cargo run --target x86_64-unknown-linux-gnu -C link-arg=-nostartfiles
 ```
 
 **macOs - aarch64**
 
 ```bash
-cargo run --target aarch64-unknown-linux-gnu
+cargo run --target aarch64-unknown-linux-gnu -C link-arg=-nostartfiles
 ```
 <br><br>
 
