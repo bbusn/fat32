@@ -14,7 +14,7 @@ use core::panic::PanicInfo;
 
 use crate::cli::{init_cli, print, print_bytes_hex};
 use crate::sys::{close, exit, open, read};
-use boot_sector::{ verify_boot_sector_signature };
+use boot_sector::{ verify_boot_sector_signature, parse_boot_sector, BootSector };
 
 // When not testing, we need this func to call main for aarch64
 #[cfg(not(test))]
@@ -63,8 +63,12 @@ fn main() {
         exit(1);
     }
 
-    // loop {}
-    exit(0);
+    let bs: BootSector = parse_boot_sector(&boot_sector);
+
+    /* ---------- Localize FATs ---------- */
+       
+
+    loop {}
 }
 
 /* We need to implement this panic handler in no_std */
