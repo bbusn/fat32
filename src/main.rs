@@ -12,19 +12,17 @@ use core::panic::PanicInfo;
 
 use syscalls::{close, exit, open, print, print_hex, read};
 
-
 #[cfg(not(test))]
 #[unsafe(no_mangle)]
 fn __libc_start_main() {
-	main();	
+    main();
 }
 
 #[cfg(not(test))]
 #[unsafe(no_mangle)]
 fn abort() {
-        exit(1);
+    exit(1);
 }
-
 
 /* ---------- Main function ---------- */
 #[unsafe(no_mangle)]
@@ -80,5 +78,3 @@ fn panic(_info: &PanicInfo) -> ! {
 #[cfg(not(test))]
 #[unsafe(no_mangle)]
 pub extern "C" fn rust_eh_personality() {}
-
-
