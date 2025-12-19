@@ -4,17 +4,17 @@
 #[cfg(test)]
 extern crate std;
 
-mod sys;
+mod boot_sector;
 mod cli;
 mod helpers;
-mod boot_sector;
+mod sys;
 
 #[cfg(not(test))]
 use core::panic::PanicInfo;
 
 use crate::cli::{init_cli, print, print_bytes_hex};
-use crate::sys::{close, exit, open, read};
-use boot_sector::{ verify_boot_sector_signature, parse_boot_sector, BootSector };
+use crate::sys::{close, exit, get_args, open, read, print_bytes};
+use boot_sector::{BootSector, parse_boot_sector, verify_boot_sector_signature};
 
 // When not testing, we need this func to call main for aarch64
 #[cfg(not(test))]
@@ -33,6 +33,13 @@ fn abort() {
 /* ---------- Main function ---------- */
 #[unsafe(no_mangle)]
 fn main() {
+    let (argc, argv) = get_args();
+
+    for i in 0..argc {
+        let arg = unsafe { *argv.add(i) };
+        print_bytes(arg);
+    }
+
     init_cli();
 
     let path = b"disk.img\0";
@@ -66,7 +73,9 @@ fn main() {
     let bs: BootSector = parse_boot_sector(&boot_sector);
 
     /* ---------- Localize FATs ---------- */
-       
+    let fat_start = (bs.reserved_sectors_count as u32) * (bs.bytes_per_sector as u32);
+    let data_start =
+        fat_start + (bs.fats_count as u32) * bs.fat_size_sectors * bs.bytes_per_sector as u32;
 
     exit(0);
 }

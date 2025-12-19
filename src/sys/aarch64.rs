@@ -9,6 +9,23 @@ pub mod syscalls {
 }
 
 /* __________ Syscalls __________ */
+pub fn get_args() -> (usize, *const *const u8) {
+    let mut argc: usize;
+    let mut argv: *const *const u8;
+
+    unsafe {
+        core::arch::asm!(
+            "mov {}, rsp",
+            out(reg) argv,
+        );
+
+        argc = *(argv as *const usize);
+        argv = argv.add(1);
+    }
+
+    (argc, argv)
+}
+
 #[inline(always)]
 pub fn syscall_3(n: usize, a0: usize, a1: usize, a2: usize) -> isize {
     let ret: isize;
