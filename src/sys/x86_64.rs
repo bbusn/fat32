@@ -1,4 +1,4 @@
-use crate::sys::consts::{AT_FDCWD, RDONLY_0, STDOUT_FILENO};
+use crate::sys::consts::{AT_FDCWD, RDONLY_0, SEEK_CUR, SEEK_END, SEEK_SET, STDOUT_FILENO};
 
 pub mod syscalls {
     pub const EXIT: usize = 60;
@@ -6,26 +6,10 @@ pub mod syscalls {
     pub const READ: usize = 0;
     pub const CLOSE: usize = 3;
     pub const WRITE: usize = 1;
+    pub const LSEEK: usize = 8;
 }
 
 /* __________ Syscalls __________ */
-pub fn get_args() -> (usize, *const *const u8) {
-    let mut argc: usize;
-    let mut argv: *const *const u8;
-
-    unsafe {
-        core::arch::asm!(
-            "mov {}, rsp",
-            out(reg) argv,
-        );
-
-        argc = *(argv as *const usize);
-        argv = argv.add(1);
-    }
-
-    (argc, argv)
-}
-
 #[inline(always)]
 pub fn syscall_3(n: usize, a0: usize, a1: usize, a2: usize) -> isize {
     let ret: isize;
@@ -61,6 +45,27 @@ pub fn syscall_1(n: usize, a0: usize) -> isize {
 /* __________ Helpers __________ */
 pub fn exit(code: usize) {
     syscall_1(syscalls::EXIT, code);
+}
+
+pub fn lseek(fd: usize, offset: usize, whence: usize) -> isize {
+    syscall_3(syscalls::LSEEK, fd, offset, whence)
+}
+
+pub unsafe fn read_at(fd: usize, buffer: *mut u8, len: usize, offset: usize) -> isize {
+    let cur = lseek(fd, 0, SEEK_CUR);
+    if cur < 0 {
+        return cur;
+    }
+
+    if lseek(fd, offset, SEEK_SET) < 0 {
+        return -1;
+    }
+
+    let r = read(fd, buffer, len);
+
+    lseek(fd, cur as usize, SEEK_SET);
+
+    r
 }
 
 pub fn open(path: *const u8) -> isize {
