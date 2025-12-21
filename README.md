@@ -59,10 +59,7 @@ exit
 ```
 *You can also quit with Ctrl + C*
 
-<div align="center">
-  <img src="https://github.com/bbusn/fat32/blob/main/readme/run.png" width="400" />
-
-</div>
+  <img src="https://github.com/bbusn/fat32/blob/main/readme/run.png" width="700" />
 
 **Navigate**
 
@@ -74,10 +71,7 @@ cd directory
 cd ..
 ```
 
-<div align="center">
-  <img src="https://github.com/bbusn/fat32/blob/main/readme/cd.png" width="400" />
-
-</div>
+  <img src="https://github.com/bbusn/fat32/blob/main/readme/cd.png" width="700" />
 
 **Read a file**
 
@@ -85,10 +79,7 @@ cd ..
 cat file.txt
 ```
 
-<div align="center">
-  <img src="https://github.com/bbusn/fat32/blob/main/readme/cat.png" width="400" />
-
-</div>
+  <img src="https://github.com/bbusn/fat32/blob/main/readme/cat.png" width="700" />
 
 <br><br>
 
