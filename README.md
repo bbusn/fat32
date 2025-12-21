@@ -64,11 +64,15 @@ exit
 **Navigate**
 
 ```bash
-cd directory
+cd folder
 ```
 
 ```bash
 cd ..
+```
+
+```bash
+cd /
 ```
 
   <img src="https://github.com/bbusn/fat32/blob/main/readme/cd.png" width="825" />
