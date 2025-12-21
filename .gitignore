@@ -3,3 +3,5 @@ disk.img
 
 # Rust
 /target
+
+fat32.bundle
