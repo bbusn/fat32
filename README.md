@@ -48,6 +48,27 @@ sudo ./scripts/create_image.sh
 
 You're done and can test the lib with this disk.img
 
+## 🎹 Commands
+
+**Exit**
+
+```bash
+exit
+```
+*You can also quit with Ctrl + C*
+
+**Navigate**
+
+```bash
+cd directory
+```
+
+```bash
+cd ..
+```
+
+<br><br>
+
 <div align="center">
 	<img src="https://github.com/bbusn/fat32/blob/main/readme/excited.gif" width="175" />
 
