@@ -31,6 +31,12 @@ fn abort() {
     exit(1);
 }
 
+#[cfg(test)]
+fn wait_for_input() {
+    // In tests we should not block waiting for stdin — return immediately.
+}
+
+#[cfg(not(test))]
 fn wait_for_input() {
     let mut buf = [0u8; 256];
     loop {
