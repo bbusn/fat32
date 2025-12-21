@@ -1,10 +1,14 @@
-use crate::cli::consts::HEX;
+use crate::cli::consts::{HEX, CLI_NAME};
 use crate::sys::print_bytes;
 
 /* __________ Helpers __________ */
 pub fn print(val: &str) {
     print_bytes(val.as_bytes());
     print_bytes(b"\n");
+}
+
+pub fn print_no_ln(val: &str) {
+    print_bytes(val.as_bytes());
 }
 
 // Convert a byte to hex
@@ -42,6 +46,10 @@ pub fn print_ascii() {
         ",
     );
     print("\n");
+}
+
+pub fn print_line() {
+    print("_______________________________________________________________________________");
 }
 
 pub fn print_ls(entry: &[u8], is_dir: bool, last: bool, indent_level: usize) {
