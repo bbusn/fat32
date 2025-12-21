@@ -13,6 +13,10 @@ pub mod syscalls {
 #[inline(always)]
 pub fn syscall_3(n: usize, a0: usize, a1: usize, a2: usize) -> isize {
     let ret: isize;
+    /// Safety: invokes inline assembly to perform a syscall using the AArch64
+    /// calling convention. The registers provided in the `in` and `lateout`
+    /// operands are used according to the syscall ABI.
+    // SAFETY: the asm block follows the syscall ABI and writes `ret` via `lateout("x0")`.
     unsafe {
         core::arch::asm!(
             "svc 0",
@@ -30,6 +34,8 @@ pub fn syscall_3(n: usize, a0: usize, a1: usize, a2: usize) -> isize {
 #[inline(always)]
 pub fn syscall_1(n: usize, a0: usize) -> isize {
     let ret: isize;
+    /// Safety: inline assembly to perform a syscall with one argument.
+    // SAFETY: follows syscall ABI and returns result in `ret`.
     unsafe {
         core::arch::asm!(
             "svc 0",
@@ -52,6 +58,11 @@ pub fn lseek(fd: usize, offset: usize, whence: usize) -> isize {
     syscall_3(syscalls::LSEEK, fd, offset, whence)
 }
 
+/// Safety: performs file operations using raw pointer `buffer` and seeks the
+/// underlying file descriptor. The caller must ensure `buffer` is valid for
+/// `len` bytes and that `fd` refers to an open file. The function will restore
+/// the previous file offset on return.
+// SAFETY: Caller must guarantee the validity of `buffer` and `fd`.
 pub unsafe fn read_at(fd: usize, buffer: *mut u8, len: usize, offset: usize) -> isize {
     let cur = lseek(fd, 0, SEEK_CUR);
     if cur < 0 {

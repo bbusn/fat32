@@ -16,16 +16,16 @@ use core::panic::PanicInfo;
 use crate::cli::{CLI_NAME, print, print_bytes_hex, print_line, print_no_ln, reset_cli};
 use crate::sys::{close, exit, open, print_bytes, read, read_at};
 use boot_sector::{BootSector, parse_boot_sector, verify_boot_sector_signature};
-use fat::{change_directory, list_root};
+use fat::{change_directory, list_root, read_file};
 
-// When not testing, we need this func to call main for aarch64
+/* When not testing, we need this func to call main for aarch64 */
 #[cfg(not(test))]
 #[unsafe(no_mangle)]
 fn __libc_start_main() {
     main();
 }
 
-// When not testing, we need this func for compiler for aarch64
+/* When not testing, we need this func for compiler for aarch64 */
 #[cfg(not(test))]
 #[unsafe(no_mangle)]
 fn abort() {
@@ -80,6 +80,13 @@ fn main() {
         print_no_ln(CLI_NAME);
 
         let mut buf = [0u8; 256];
+        /// Safety: calling the raw `read` syscall with a raw pointer.
+        ///
+        /// The buffer `buf` is a stack-local array with length `buf.len()`; we pass
+        /// its pointer and length to the syscall which will write at most that many
+        /// bytes. The syscall may perform arbitrary writes within that range.
+        // SAFETY: `buf.as_mut_ptr()` is valid for `buf.len()` bytes and `fd=0` (stdin)
+        // is a valid file descriptor for reading in this environment.
         let bytes_read = unsafe { read(0, buf.as_mut_ptr(), buf.len()) };
 
         if bytes_read >= 4 {
@@ -123,6 +130,39 @@ fn main() {
                 None => {
                     print("Folder not found");
                 }
+            }
+            continue;
+        }
+
+        /* Handle `ls <path>` command (list without changing current directory) */
+        if len >= 3 && buf[0] == b'l' && buf[1] == b's' && buf[2] == b' ' {
+            let arg = &buf[3..len];
+            match change_directory(
+                fd as usize,
+                &bs,
+                fat_start as usize,
+                data_start as usize,
+                current_cluster,
+                arg,
+            ) {
+                Some(_cluster) => {
+                    /* `change_directory` already printed the directory listing. */
+                }
+                None => {
+                    print("Folder not found");
+                }
+            }
+            continue;
+        }
+
+        /* Handle `cat <file>` or `more <file>` command */
+        if (len >= 4 && buf[0] == b'c' && buf[1] == b'a' && buf[2] == b't' && buf[3] == b' ')
+            || (len >= 5 && buf[0] == b'm' && buf[1] == b'o' && buf[2] == b'r' && buf[3] == b'e' && buf[4] == b' ')
+        {
+            let arg = if buf[0] == b'c' { &buf[4..len] } else { &buf[5..len] };
+            match read_file(fd as usize, &bs, fat_start as usize, data_start as usize, current_cluster, arg) {
+                Some(()) => {}
+                None => print("File not found"),
             }
             continue;
         }
