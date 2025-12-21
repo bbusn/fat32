@@ -338,6 +338,15 @@ pub fn change_directory(
                 continue;
             }
 
+            /* If there is no explicit ".." entry and we're already at root,
+             * treat `cd ..` as a no-op and remain at root. This makes `cd ..`
+             * behave reasonably when invoked from root (or after a plain `ls /...`). */
+            if current_cluster == bs.root_cluster {
+                reset_cli();
+                list_dir(fd, bs, fat_start, data_start, bs.root_cluster, b"/");
+                return Some(bs.root_cluster);
+            }
+
             return None;
         }
 
