@@ -6,9 +6,9 @@ extern crate std;
 
 mod boot_sector;
 mod cli;
+mod fat;
 mod helpers;
 mod sys;
-mod fat;
 
 #[cfg(not(test))]
 use core::panic::PanicInfo;
@@ -37,6 +37,8 @@ fn main() {
     init_cli();
 
     let path = b"disk.img\0";
+    print_bytes(path);
+    print("\n");
 
     let fd = open(path.as_ptr());
 
