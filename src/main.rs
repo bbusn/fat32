@@ -13,7 +13,7 @@ mod sys;
 #[cfg(not(test))]
 use core::panic::PanicInfo;
 
-use crate::cli::{CLI_NAME, init_cli, print, print_bytes_hex, print_line, print_no_ln};
+use crate::cli::{CLI_NAME, reset_cli, print, print_bytes_hex, print_line, print_no_ln};
 use crate::sys::{close, exit, open, print_bytes, read, read_at};
 use boot_sector::{BootSector, parse_boot_sector, verify_boot_sector_signature};
 use fat::{change_directory, list_root};
@@ -35,12 +35,11 @@ fn abort() {
 /* ---------- Main function ---------- */
 #[unsafe(no_mangle)]
 fn main() {
-    init_cli();
+    reset_cli();
 
     let path = b"disk.img\0";
     print_bytes(path);
     print("\n");
-    print_line();
 
     let fd = open(path.as_ptr());
 
@@ -74,12 +73,12 @@ fn main() {
         fat_start + (bs.fats_count as u32) * bs.fat_size_sectors * bs.bytes_per_sector as u32;
 
     list_root(fd as usize, &bs, fat_start as usize, data_start as usize);
-    print_line();
 
     let mut current_cluster = bs.root_cluster;
 
     #[cfg(not(test))]
     loop {
+	print_line();
         print_no_ln(CLI_NAME);
         print("Type 'exit' to quit or press Ctrl+C:");
 
@@ -123,10 +122,9 @@ fn main() {
             ) {
                 Some(cluster) => {
                     current_cluster = cluster;
-                    print("Changed directory");
                 }
                 None => {
-                    print("Directory not found");
+                    print("Folder not found");
                 }
             }
             continue;

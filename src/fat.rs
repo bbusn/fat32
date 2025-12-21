@@ -1,6 +1,6 @@
 use crate::boot_sector::BootSector;
-use crate::cli::{print, print_ls};
-use crate::helpers::{to_lowercase_ascii, u8_le_to_u16, u8_to_u32_le};
+use crate::cli::{print, print_ls, reset_cli};
+use crate::helpers::{u8_to_u32_le, u8_le_to_u16, to_lowercase_ascii};
 use crate::sys::{print_bytes, read_at};
 
 const FAT_MAX_SIZE: usize = 65536;
@@ -103,13 +103,7 @@ where
     let mut cluster = start_cluster;
 
     while !is_end_cluster(cluster) {
-        let rr = read_cluster_into(
-            fd,
-            bs,
-            data_start,
-            cluster,
-            &mut cluster_buf[..cluster_size],
-        );
+        let rr = read_cluster_into(fd, bs, data_start, cluster, &mut cluster_buf[..cluster_size]);
         if rr < 0 || rr as usize != cluster_size {
             return None;
         }
@@ -159,13 +153,80 @@ where
 }
 
 pub fn list_root(fd: usize, bs: &BootSector, fat_start: usize, data_start: usize) {
-    let _ = iterate_dir_entries::<(), _>(
-        fd,
-        bs,
-        fat_start,
-        data_start,
-        bs.root_cluster,
-        |entry, last| {
+    let _ = iterate_dir_entries::<(), _>(fd, bs, fat_start, data_start, bs.root_cluster, |entry, last| {
+        let attr = entry[11];
+
+        let name = &entry[0..8];
+        let ext = &entry[8..11];
+
+        let mut out = [0u8; 13];
+        let name_len = build_short_name(name, ext, &mut out);
+        let name_bytes = &out[..name_len];
+
+        /* Convert to lowercase */
+        let mut lower_name = [0u8; 13];
+        let lower_len = to_lowercase_ascii(name_bytes, &mut lower_name);
+
+        /* 0x10 = directory flag */
+        let is_dir = (attr & 0x10) != 0;
+
+        let indent_level = 0;
+
+        print_ls(&lower_name[..lower_len], is_dir, last, indent_level);
+
+        None
+    });
+}
+
+pub fn change_directory(
+    fd: usize,
+    bs: &BootSector,
+    fat_start: usize,
+    data_start: usize,
+    current_cluster: u32,
+    dir_name: &[u8],
+) -> Option<u32> {
+    /* First find the target cluster for the directory */
+    let found = iterate_dir_entries::<u32, _>(fd, bs, fat_start, data_start, current_cluster, |entry, _last| {
+        let attr = entry[11];
+        /* 0x10 = directory flag */
+        let is_dir = (attr & 0x10) != 0;
+        if !is_dir {
+            return None;
+        }
+
+        let name = &entry[0..8];
+        let ext = &entry[8..11];
+
+        let mut out = [0u8; 13];
+        let name_len = build_short_name(name, ext, &mut out);
+        let name_bytes = &out[..name_len];
+
+        /* Convert to lowercase for comparison */
+        let mut lower_name = [0u8; 13];
+        let lower_len = to_lowercase_ascii(name_bytes, &mut lower_name);
+
+        /* Convert dir_name to lowercase for comparison */
+        let mut lower_search = [0u8; 13];
+        let search_len = to_lowercase_ascii(dir_name, &mut lower_search);
+
+        /* Compare names */
+        if lower_len == search_len && &lower_name[..lower_len] == &lower_search[..search_len] {
+            /* Found the directory, extract cluster number (low and high 16-bit parts) */
+            let cluster_low = u8_le_to_u16(&entry[26..28]) as u32;
+            let cluster_high = u8_le_to_u16(&entry[20..22]) as u32;
+            let target_cluster = (cluster_high << 16) | (cluster_low & 0xFFFF);
+            return Some(target_cluster);
+        }
+
+        None
+    });
+
+    if let Some(target_cluster) = found {
+        /* Clear the screen and print the directory contents like `list_root` */
+        reset_cli();
+
+        let _ = iterate_dir_entries::<(), _>(fd, bs, fat_start, data_start, target_cluster, |entry, last| {
             let attr = entry[11];
 
             let name = &entry[0..8];
@@ -187,59 +248,12 @@ pub fn list_root(fd: usize, bs: &BootSector, fat_start: usize, data_start: usize
             print_ls(&lower_name[..lower_len], is_dir, last, indent_level);
 
             None
-        },
-    );
-}
+        });
 
-pub fn change_directory(
-    fd: usize,
-    bs: &BootSector,
-    fat_start: usize,
-    data_start: usize,
-    current_cluster: u32,
-    dir_name: &[u8],
-) -> Option<u32> {
-    iterate_dir_entries::<u32, _>(
-        fd,
-        bs,
-        fat_start,
-        data_start,
-        current_cluster,
-        |entry, _last| {
-            let attr = entry[11];
-            /* 0x10 = directory flag */
-            let is_dir = (attr & 0x10) != 0;
-            if !is_dir {
-                return None;
-            }
+        return Some(target_cluster);
+    }
 
-            let name = &entry[0..8];
-            let ext = &entry[8..11];
-
-            let mut out = [0u8; 13];
-            let name_len = build_short_name(name, ext, &mut out);
-            let name_bytes = &out[..name_len];
-
-            /* Convert to lowercase for comparison */
-            let mut lower_name = [0u8; 13];
-            let lower_len = to_lowercase_ascii(name_bytes, &mut lower_name);
-
-            /* Convert dir_name to lowercase for comparison */
-            let mut lower_search = [0u8; 13];
-            let search_len = to_lowercase_ascii(dir_name, &mut lower_search);
-
-            /* Compare names */
-            if lower_len == search_len && &lower_name[..lower_len] == &lower_search[..search_len] {
-                /* Found the directory, extract cluster number (low and high 16-bit parts) */
-                let cluster_low = u8_le_to_u16(&entry[26..28]) as u32;
-                let cluster_high = u8_le_to_u16(&entry[20..22]) as u32;
-                let target_cluster = (cluster_high << 16) | (cluster_low & 0xFFFF);
-                return Some(target_cluster);
-            }
-
-            None
-        },
-    )
+    None
 }
 
 #[cfg(test)]
