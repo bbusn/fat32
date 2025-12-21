@@ -8,6 +8,7 @@ mod boot_sector;
 mod cli;
 mod helpers;
 mod sys;
+mod fat;
 
 #[cfg(not(test))]
 use core::panic::PanicInfo;
@@ -49,8 +50,6 @@ fn main() {
 
     let r = read(fd as usize, boot_sector.as_mut_ptr(), 512);
 
-    close(fd as usize);
-
     if r != 512 {
         print("Failed to read boot sector");
         exit(1);
@@ -70,9 +69,9 @@ fn main() {
     let data_start =
         fat_start + (bs.fats_count as u32) * bs.fat_size_sectors * bs.bytes_per_sector as u32;
 
-    let fat_size_bytes = bs.fat_size_sectors * bs.bytes_per_sector as u32;
+    fat::list_root(fd as usize, &bs, fat_start as usize, data_start as usize);
 
-    const FAT_MAX_SIZE: usize = 65536;
+    close(fd as usize);
 
     exit(0);
 }

@@ -1,4 +1,4 @@
-use crate::helpers::{u8_le_to_u16, u8_le_to_u32};
+use crate::helpers::{u8_le_to_u16, u8_to_u32_le};
 
 pub struct BootSector {
     pub bytes_per_sector: u16,
@@ -19,7 +19,7 @@ pub fn parse_boot_sector(bs: &[u8; 512]) -> BootSector {
         sectors_per_cluster: bs[13],
         reserved_sectors_count: u8_le_to_u16(&bs[14..16]),
         fats_count: bs[16],
-        fat_size_sectors: u8_le_to_u32(&bs[36..40]),
-        root_cluster: u8_le_to_u32(&bs[44..48]),
+        fat_size_sectors: u8_to_u32_le(&bs[36..40]),
+        root_cluster: u8_to_u32_le(&bs[44..48]),
     }
 }
