@@ -11,6 +11,15 @@ pub fn u8_to_u32_le(bytes: &[u8]) -> u32 {
     (bytes[0] as u32) | (bytes[1] as u32) << 8 | (bytes[2] as u32) << 16 | (bytes[3] as u32) << 24
 }
 
+pub fn to_lowercase_ascii(src: &[u8], dst: &mut [u8]) -> usize {
+    let mut len = 0;
+    for (i, &c) in src.iter().enumerate() {
+        dst[i] = if c >= b'A' && c <= b'Z' { c + 32 } else { c };
+        len += 1;
+    }
+    len
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -24,7 +24,6 @@ pub fn parse_boot_sector(bs: &[u8; 512]) -> BootSector {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;

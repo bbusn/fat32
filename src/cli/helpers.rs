@@ -1,4 +1,4 @@
-use crate::cli::consts::{HEX, CLI_NAME};
+use crate::cli::consts::{CLI_NAME, HEX};
 use crate::sys::print_bytes;
 
 /* __________ Helpers __________ */
