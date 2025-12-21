@@ -38,9 +38,6 @@ fn main() {
     reset_cli();
 
     let path = b"disk.img\0";
-    print_bytes(path);
-    print("\n");
-
     let fd = open(path.as_ptr());
 
     if fd < 0 {

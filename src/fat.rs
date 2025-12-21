@@ -186,7 +186,14 @@ where
 }
 
 pub fn list_root(fd: usize, bs: &BootSector, fat_start: usize, data_start: usize) {
-    let _ = iterate_dir_entries::<(), _>(fd, bs, fat_start, data_start, bs.root_cluster, |entry, last| {
+    list_dir(fd, bs, fat_start, data_start, bs.root_cluster, b"/");
+}
+
+pub fn list_dir(fd: usize, bs: &BootSector, fat_start: usize, data_start: usize, start_cluster: u32, path: &[u8]) {
+    print_bytes(path);
+    print("\n");
+
+    let _ = iterate_dir_entries::<(), _>(fd, bs, fat_start, data_start, start_cluster, |entry, last| {
         let attr = entry[11];
 
         let name = &entry[0..8];
@@ -257,29 +264,12 @@ pub fn change_directory(
             }
             reset_cli();
 
-            let _ = iterate_dir_entries::<(), _>(fd, bs, fat_start, data_start, target_cluster, |entry, last| {
-                let attr = entry[11];
-
-                let name = &entry[0..8];
-                let ext = &entry[8..11];
-
-                let mut out = [0u8; 13];
-                let name_len = build_short_name(name, ext, &mut out);
-                let name_bytes = &out[..name_len];
-
-                /* Convert to lowercase */
-                let mut lower_name = [0u8; 13];
-                let lower_len = to_lowercase_ascii(name_bytes, &mut lower_name);
-
-                /* 0x10 = directory flag */
-                let is_dir = (attr & 0x10) != 0;
-
-                let indent_level = 0;
-
-                print_ls(&lower_name[..lower_len], is_dir, last, indent_level);
-
-                None
-            });
+            /* Print path: show root for root cluster, otherwise show '..' as we don't track full path */
+            if target_cluster == bs.root_cluster {
+                list_dir(fd, bs, fat_start, data_start, target_cluster, b"/");
+            } else {
+                list_dir(fd, bs, fat_start, data_start, target_cluster, b"/..");
+            }
 
             return Some(target_cluster);
         }
@@ -323,29 +313,16 @@ pub fn change_directory(
         /* Clear the screen and print the directory contents like `list_root` */
         reset_cli();
 
-        let _ = iterate_dir_entries::<(), _>(fd, bs, fat_start, data_start, target_cluster, |entry, last| {
-            let attr = entry[11];
+        /* Build a simple path string from the requested dir name */
+        let mut path_buf = [0u8; 64];
+        path_buf[0] = b'/';
+        let copy_len = core::cmp::min(search_len, path_buf.len() - 1);
+        for i in 0..copy_len {
+            path_buf[1 + i] = lower_search[i];
+        }
+        let path_slice = &path_buf[..1 + copy_len];
 
-            let name = &entry[0..8];
-            let ext = &entry[8..11];
-
-            let mut out = [0u8; 13];
-            let name_len = build_short_name(name, ext, &mut out);
-            let name_bytes = &out[..name_len];
-
-            /* Convert to lowercase */
-            let mut lower_name = [0u8; 13];
-            let lower_len = to_lowercase_ascii(name_bytes, &mut lower_name);
-
-            /* 0x10 = directory flag */
-            let is_dir = (attr & 0x10) != 0;
-
-            let indent_level = 0;
-
-            print_ls(&lower_name[..lower_len], is_dir, last, indent_level);
-
-            None
-        });
+        list_dir(fd, bs, fat_start, data_start, target_cluster, path_slice);
 
         return Some(target_cluster);
     }
