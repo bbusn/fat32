@@ -48,6 +48,8 @@ sudo ./scripts/create_image.sh
 
 You're done and can test the lib with this disk.img
 
+<br><br>
+
 ## 🎹 Commands
 
 **Exit**
