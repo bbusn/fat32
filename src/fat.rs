@@ -1,5 +1,5 @@
 use crate::boot_sector::BootSector;
-use crate::cli::{print};
+use crate::cli::{print, print_ls};
 use crate::sys::{read_at, print_bytes};
 use crate::helpers::{u8_to_u32_le};
 
@@ -129,7 +129,13 @@ pub fn list_root(fd: usize, bs: &BootSector, fat_start: usize, data_start: usize
             out[idx] = b'\n';
             idx += 1;
 
-            print_bytes(&out[..idx]);
+            /* We remove the \n */ 
+            let name_bytes = &out[..idx - 1];
+            
+            /* 0x10 = directory flag */ 
+            let is_dir = (attr & 0x10) != 0;
+
+            print_ls(name_bytes, is_dir);
         }
 
         /* Move to next cluster in chain */

@@ -43,3 +43,15 @@ pub fn print_ascii() {
     );
     print("\n");
 }
+
+pub fn print_ls(entry: &[u8], is_dir: bool) {
+    if is_dir {
+        print_bytes(b"\xF0\x9F\x93\x81 "); 
+    } else {
+        print_bytes(b"\xF0\x9F\x93\x84 ");
+    }
+
+    print_bytes(entry);
+
+    print_bytes(b"\x1b[0m");
+}
