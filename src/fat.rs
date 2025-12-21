@@ -605,11 +605,8 @@ pub fn read_file(
 
         return None;
     }
-    let path_slice = &path_buf[..copy_len];
 
-    list_dir(fd, bs, fat_start, data_start, working_cluster, path_slice);
-
-    Some(working_cluster)
+    None
 }
 
 #[cfg(test)]
