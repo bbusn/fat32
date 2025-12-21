@@ -1,4 +1,4 @@
-// FAT32 uses little endian
+/* FAT32 uses little endian */
 pub fn u8_le_to_u16(bytes: &[u8]) -> u16 {
     (bytes[1] as u16) << 8 | (bytes[0] as u16)
 }
@@ -13,7 +13,9 @@ pub fn u8_to_u32_le(bytes: &[u8]) -> u32 {
 
 pub fn to_lowercase_ascii(src: &[u8], dst: &mut [u8]) -> usize {
     let mut len = 0;
-    for (i, &c) in src.iter().enumerate() {
+    let max = core::cmp::min(src.len(), dst.len());
+    for i in 0..max {
+        let c = src[i];
         dst[i] = if c >= b'A' && c <= b'Z' { c + 32 } else { c };
         len += 1;
     }

@@ -36,8 +36,29 @@ fn read_cluster_into(
     let bytes_per_sector = bs.bytes_per_sector as usize;
     let sectors_per_cluster = bs.sectors_per_cluster as usize;
     let cluster_size = bytes_per_sector * sectors_per_cluster;
-    let read_size = core::cmp::min(buf.len(), cluster_size);
-    let offset = data_start + ((cluster as usize - 2) * cluster_size);
+    if cluster < 2 {
+        return -1;
+    }
+    if cluster_size > buf.len() {
+        /* buffer provided is too small for a full cluster */
+        return -1;
+    }
+
+    let read_size = cluster_size;
+
+    let cluster_index = match (cluster as usize).checked_sub(2) {
+        Some(v) => v,
+        None => return -1,
+    };
+
+    let offset = match cluster_index.checked_mul(cluster_size) {
+        Some(v) => match data_start.checked_add(v) {
+            Some(o) => o,
+            None => return -1,
+        },
+        None => return -1,
+    };
+
     unsafe { read_at(fd, buf.as_mut_ptr(), read_size, offset) }
 }
 
@@ -51,6 +72,7 @@ fn build_short_name(name: &[u8], ext: &[u8], out: &mut [u8]) -> usize {
     }
 
     for j in 0..name_end {
+        if idx >= out.len() { break; }
         out[idx] = name[j];
         idx += 1;
     }
@@ -62,9 +84,12 @@ fn build_short_name(name: &[u8], ext: &[u8], out: &mut [u8]) -> usize {
     }
 
     if ext_end > 0 {
-        out[idx] = b'.';
-        idx += 1;
+        if idx < out.len() {
+            out[idx] = b'.';
+            idx += 1;
+        }
         for j in 0..ext_end {
+            if idx >= out.len() { break; }
             out[idx] = ext[j];
             idx += 1;
         }
@@ -87,6 +112,14 @@ where
     let bytes_per_sector = bs.bytes_per_sector as usize;
     let sectors_per_cluster = bs.sectors_per_cluster as usize;
     let cluster_size = bytes_per_sector * sectors_per_cluster;
+
+    if cluster_size == 0 || cluster_size > CLUSTER_MAX_SIZE {
+        return None;
+    }
+
+    if start_cluster < 2 {
+        return None;
+    }
 
     let fat_size_bytes = bs.fat_size_sectors as usize * bytes_per_sector;
     let fat_buf_size = core::cmp::min(FAT_MAX_SIZE, fat_size_bytes);
@@ -186,7 +219,75 @@ pub fn change_directory(
     current_cluster: u32,
     dir_name: &[u8],
 ) -> Option<u32> {
-    /* First find the target cluster for the directory */
+    /* Prepare lowercase search bytes for the requested dir name */
+    let mut lower_search = [0u8; 13];
+    let search_len = to_lowercase_ascii(dir_name, &mut lower_search);
+
+    /* Special cases: '.' -> stay, '..' -> parent */
+    if search_len == 1 && lower_search[0] == b'.' {
+        return Some(current_cluster);
+    }
+
+    /* If looking for parent, we still need to find the ".." entry in the current directory */
+    if search_len == 2 && lower_search[0] == b'.' && lower_search[1] == b'.' {
+        let found_parent = iterate_dir_entries::<u32, _>(fd, bs, fat_start, data_start, current_cluster, |entry, _last| {
+            let name = &entry[0..8];
+            let ext = &entry[8..11];
+
+            let mut out = [0u8; 13];
+            let name_len = build_short_name(name, ext, &mut out);
+            let name_bytes = &out[..name_len];
+
+            let mut lower_name = [0u8; 13];
+            let lower_len = to_lowercase_ascii(name_bytes, &mut lower_name);
+
+            if lower_len == search_len && &lower_name[..lower_len] == &lower_search[..search_len] {
+                let cluster_low = u8_le_to_u16(&entry[26..28]) as u32;
+                let cluster_high = u8_le_to_u16(&entry[20..22]) as u32;
+                let target_cluster = (cluster_high << 16) | (cluster_low & 0xFFFF);
+                return Some(target_cluster);
+            }
+
+            None
+        });
+
+        if let Some(mut target_cluster) = found_parent {
+            if target_cluster < 2 {
+                target_cluster = bs.root_cluster;
+            }
+            reset_cli();
+
+            let _ = iterate_dir_entries::<(), _>(fd, bs, fat_start, data_start, target_cluster, |entry, last| {
+                let attr = entry[11];
+
+                let name = &entry[0..8];
+                let ext = &entry[8..11];
+
+                let mut out = [0u8; 13];
+                let name_len = build_short_name(name, ext, &mut out);
+                let name_bytes = &out[..name_len];
+
+                /* Convert to lowercase */
+                let mut lower_name = [0u8; 13];
+                let lower_len = to_lowercase_ascii(name_bytes, &mut lower_name);
+
+                /* 0x10 = directory flag */
+                let is_dir = (attr & 0x10) != 0;
+
+                let indent_level = 0;
+
+                print_ls(&lower_name[..lower_len], is_dir, last, indent_level);
+
+                None
+            });
+
+            return Some(target_cluster);
+        }
+
+        return None;
+    }
+
+    /* General case: find a matching subdirectory by name */
     let found = iterate_dir_entries::<u32, _>(fd, bs, fat_start, data_start, current_cluster, |entry, _last| {
         let attr = entry[11];
         /* 0x10 = directory flag */
@@ -205,10 +306,6 @@ pub fn change_directory(
         /* Convert to lowercase for comparison */
         let mut lower_name = [0u8; 13];
         let lower_len = to_lowercase_ascii(name_bytes, &mut lower_name);
-
-        /* Convert dir_name to lowercase for comparison */
-        let mut lower_search = [0u8; 13];
-        let search_len = to_lowercase_ascii(dir_name, &mut lower_search);
 
         /* Compare names */
         if lower_len == search_len && &lower_name[..lower_len] == &lower_search[..search_len] {
