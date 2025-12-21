@@ -13,7 +13,7 @@ mod sys;
 #[cfg(not(test))]
 use core::panic::PanicInfo;
 
-use crate::cli::{CLI_NAME, reset_cli, print, print_bytes_hex, print_line, print_no_ln};
+use crate::cli::{CLI_NAME, print, print_bytes_hex, print_line, print_no_ln, reset_cli};
 use crate::sys::{close, exit, open, print_bytes, read, read_at};
 use boot_sector::{BootSector, parse_boot_sector, verify_boot_sector_signature};
 use fat::{change_directory, list_root};
@@ -73,11 +73,11 @@ fn main() {
 
     let mut current_cluster = bs.root_cluster;
 
+    print("Type 'exit' to quit or press Ctrl+C:");
+
     #[cfg(not(test))]
     loop {
-	print_line();
         print_no_ln(CLI_NAME);
-        print("Type 'exit' to quit or press Ctrl+C:");
 
         let mut buf = [0u8; 256];
         let bytes_read = unsafe { read(0, buf.as_mut_ptr(), buf.len()) };

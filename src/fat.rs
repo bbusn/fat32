@@ -1,6 +1,6 @@
 use crate::boot_sector::BootSector;
-use crate::cli::{print, print_ls, reset_cli};
-use crate::helpers::{u8_to_u32_le, u8_le_to_u16, to_lowercase_ascii};
+use crate::cli::{print, print_line, print_ls, reset_cli};
+use crate::helpers::{to_lowercase_ascii, u8_le_to_u16, u8_to_u32_le};
 use crate::sys::{print_bytes, read_at};
 
 const FAT_MAX_SIZE: usize = 65536;
@@ -72,7 +72,9 @@ fn build_short_name(name: &[u8], ext: &[u8], out: &mut [u8]) -> usize {
     }
 
     for j in 0..name_end {
-        if idx >= out.len() { break; }
+        if idx >= out.len() {
+            break;
+        }
         out[idx] = name[j];
         idx += 1;
     }
@@ -89,7 +91,9 @@ fn build_short_name(name: &[u8], ext: &[u8], out: &mut [u8]) -> usize {
             idx += 1;
         }
         for j in 0..ext_end {
-            if idx >= out.len() { break; }
+            if idx >= out.len() {
+                break;
+            }
             out[idx] = ext[j];
             idx += 1;
         }
@@ -136,7 +140,13 @@ where
     let mut cluster = start_cluster;
 
     while !is_end_cluster(cluster) {
-        let rr = read_cluster_into(fd, bs, data_start, cluster, &mut cluster_buf[..cluster_size]);
+        let rr = read_cluster_into(
+            fd,
+            bs,
+            data_start,
+            cluster,
+            &mut cluster_buf[..cluster_size],
+        );
         if rr < 0 || rr as usize != cluster_size {
             return None;
         }
@@ -189,33 +199,48 @@ pub fn list_root(fd: usize, bs: &BootSector, fat_start: usize, data_start: usize
     list_dir(fd, bs, fat_start, data_start, bs.root_cluster, b"/");
 }
 
-pub fn list_dir(fd: usize, bs: &BootSector, fat_start: usize, data_start: usize, start_cluster: u32, path: &[u8]) {
+pub fn list_dir(
+    fd: usize,
+    bs: &BootSector,
+    fat_start: usize,
+    data_start: usize,
+    start_cluster: u32,
+    path: &[u8],
+) {
     print_bytes(path);
     print("\n");
 
-    let _ = iterate_dir_entries::<(), _>(fd, bs, fat_start, data_start, start_cluster, |entry, last| {
-        let attr = entry[11];
+    let _ = iterate_dir_entries::<(), _>(
+        fd,
+        bs,
+        fat_start,
+        data_start,
+        start_cluster,
+        |entry, last| {
+            let attr = entry[11];
 
-        let name = &entry[0..8];
-        let ext = &entry[8..11];
+            let name = &entry[0..8];
+            let ext = &entry[8..11];
 
-        let mut out = [0u8; 13];
-        let name_len = build_short_name(name, ext, &mut out);
-        let name_bytes = &out[..name_len];
+            let mut out = [0u8; 13];
+            let name_len = build_short_name(name, ext, &mut out);
+            let name_bytes = &out[..name_len];
 
-        /* Convert to lowercase */
-        let mut lower_name = [0u8; 13];
-        let lower_len = to_lowercase_ascii(name_bytes, &mut lower_name);
+            /* Convert to lowercase */
+            let mut lower_name = [0u8; 13];
+            let lower_len = to_lowercase_ascii(name_bytes, &mut lower_name);
 
-        /* 0x10 = directory flag */
-        let is_dir = (attr & 0x10) != 0;
+            /* 0x10 = directory flag */
+            let is_dir = (attr & 0x10) != 0;
 
-        let indent_level = 0;
+            let indent_level = 0;
 
-        print_ls(&lower_name[..lower_len], is_dir, last, indent_level);
+            print_ls(&lower_name[..lower_len], is_dir, last, indent_level);
 
-        None
-    });
+            None
+        },
+    );
+    print_line();
 }
 
 pub fn change_directory(
@@ -237,26 +262,35 @@ pub fn change_directory(
 
     /* If looking for parent, we still need to find the ".." entry in the current directory */
     if search_len == 2 && lower_search[0] == b'.' && lower_search[1] == b'.' {
-        let found_parent = iterate_dir_entries::<u32, _>(fd, bs, fat_start, data_start, current_cluster, |entry, _last| {
-            let name = &entry[0..8];
-            let ext = &entry[8..11];
+        let found_parent = iterate_dir_entries::<u32, _>(
+            fd,
+            bs,
+            fat_start,
+            data_start,
+            current_cluster,
+            |entry, _last| {
+                let name = &entry[0..8];
+                let ext = &entry[8..11];
 
-            let mut out = [0u8; 13];
-            let name_len = build_short_name(name, ext, &mut out);
-            let name_bytes = &out[..name_len];
+                let mut out = [0u8; 13];
+                let name_len = build_short_name(name, ext, &mut out);
+                let name_bytes = &out[..name_len];
 
-            let mut lower_name = [0u8; 13];
-            let lower_len = to_lowercase_ascii(name_bytes, &mut lower_name);
+                let mut lower_name = [0u8; 13];
+                let lower_len = to_lowercase_ascii(name_bytes, &mut lower_name);
 
-            if lower_len == search_len && &lower_name[..lower_len] == &lower_search[..search_len] {
-                let cluster_low = u8_le_to_u16(&entry[26..28]) as u32;
-                let cluster_high = u8_le_to_u16(&entry[20..22]) as u32;
-                let target_cluster = (cluster_high << 16) | (cluster_low & 0xFFFF);
-                return Some(target_cluster);
-            }
+                if lower_len == search_len
+                    && &lower_name[..lower_len] == &lower_search[..search_len]
+                {
+                    let cluster_low = u8_le_to_u16(&entry[26..28]) as u32;
+                    let cluster_high = u8_le_to_u16(&entry[20..22]) as u32;
+                    let target_cluster = (cluster_high << 16) | (cluster_low & 0xFFFF);
+                    return Some(target_cluster);
+                }
 
-            None
-        });
+                None
+            },
+        );
 
         if let Some(mut target_cluster) = found_parent {
             if target_cluster < 2 {
@@ -278,36 +312,43 @@ pub fn change_directory(
     }
 
     /* General case: find a matching subdirectory by name */
-    let found = iterate_dir_entries::<u32, _>(fd, bs, fat_start, data_start, current_cluster, |entry, _last| {
-        let attr = entry[11];
-        /* 0x10 = directory flag */
-        let is_dir = (attr & 0x10) != 0;
-        if !is_dir {
-            return None;
-        }
+    let found = iterate_dir_entries::<u32, _>(
+        fd,
+        bs,
+        fat_start,
+        data_start,
+        current_cluster,
+        |entry, _last| {
+            let attr = entry[11];
+            /* 0x10 = directory flag */
+            let is_dir = (attr & 0x10) != 0;
+            if !is_dir {
+                return None;
+            }
 
-        let name = &entry[0..8];
-        let ext = &entry[8..11];
+            let name = &entry[0..8];
+            let ext = &entry[8..11];
 
-        let mut out = [0u8; 13];
-        let name_len = build_short_name(name, ext, &mut out);
-        let name_bytes = &out[..name_len];
+            let mut out = [0u8; 13];
+            let name_len = build_short_name(name, ext, &mut out);
+            let name_bytes = &out[..name_len];
 
-        /* Convert to lowercase for comparison */
-        let mut lower_name = [0u8; 13];
-        let lower_len = to_lowercase_ascii(name_bytes, &mut lower_name);
+            /* Convert to lowercase for comparison */
+            let mut lower_name = [0u8; 13];
+            let lower_len = to_lowercase_ascii(name_bytes, &mut lower_name);
 
-        /* Compare names */
-        if lower_len == search_len && &lower_name[..lower_len] == &lower_search[..search_len] {
-            /* Found the directory, extract cluster number (low and high 16-bit parts) */
-            let cluster_low = u8_le_to_u16(&entry[26..28]) as u32;
-            let cluster_high = u8_le_to_u16(&entry[20..22]) as u32;
-            let target_cluster = (cluster_high << 16) | (cluster_low & 0xFFFF);
-            return Some(target_cluster);
-        }
+            /* Compare names */
+            if lower_len == search_len && &lower_name[..lower_len] == &lower_search[..search_len] {
+                /* Found the directory, extract cluster number (low and high 16-bit parts) */
+                let cluster_low = u8_le_to_u16(&entry[26..28]) as u32;
+                let cluster_high = u8_le_to_u16(&entry[20..22]) as u32;
+                let target_cluster = (cluster_high << 16) | (cluster_low & 0xFFFF);
+                return Some(target_cluster);
+            }
 
-        None
-    });
+            None
+        },
+    );
 
     if let Some(target_cluster) = found {
         /* Clear the screen and print the directory contents like `list_root` */
