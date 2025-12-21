@@ -21,7 +21,7 @@ A basic implementation of fat32 in rust **no_std**
 cargo run --target x86_64-unknown-linux-gnu
 ```
 
-**macOs - aarch64**
+**Linux - aarch64**
 
 ```bash
 cargo run --target aarch64-unknown-linux-gnu
@@ -37,7 +37,7 @@ We first need to create a fat32 test image in order to be able to use our librar
 1. Make the script executable
 
 ```bash
-chmod 755 scripts/create_image.sh
+chmod +x scripts/create_image.sh
 ```
 
 2. Execute it to create the image
