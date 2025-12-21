@@ -166,3 +166,103 @@ pub fn list_root(fd: usize, bs: &BootSector, fat_start: usize, data_start: usize
         cluster = next;
     }
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_fat_entry_valid() {
+        let mut fat_buf = [0u8; 16];
+        /* Store a valid cluster value (0x12345678) at offset 0 */
+        fat_buf[0] = 0x78;
+        fat_buf[1] = 0x56;
+        fat_buf[2] = 0x34;
+        fat_buf[3] = 0x12;
+
+        let result = fat_entry(&fat_buf, 0);
+        assert_eq!(result, 0x12345678);
+    }
+
+    #[test]
+    fn test_fat_entry_with_mask() {
+        let mut fat_buf = [0u8; 16];
+        /* Store 0xF2345678 (should be masked to 0x02345678) */
+        fat_buf[0] = 0x78;
+        fat_buf[1] = 0x56;
+        fat_buf[2] = 0x34;
+        fat_buf[3] = 0xF2;
+
+        let result = fat_entry(&fat_buf, 0);
+        assert_eq!(result, 0x02345678);
+    }
+
+    #[test]
+    fn test_fat_entry_multiple_clusters() {
+        let mut fat_buf = [0u8; 24];
+        /* Cluster 0 */
+        fat_buf[0] = 0x00;
+        fat_buf[1] = 0x00;
+        fat_buf[2] = 0x00;
+        fat_buf[3] = 0x00;
+        /* Cluster 1 */
+        fat_buf[4] = 0x22;
+        fat_buf[5] = 0x11;
+        fat_buf[6] = 0x00;
+        fat_buf[7] = 0x00;
+        /* Cluster 2 */
+        fat_buf[8] = 0x44;
+        fat_buf[9] = 0x33;
+        fat_buf[10] = 0x00;
+        fat_buf[11] = 0x00;
+
+        assert_eq!(fat_entry(&fat_buf, 0), 0x00000000);
+        assert_eq!(fat_entry(&fat_buf, 1), 0x00001122);
+        assert_eq!(fat_entry(&fat_buf, 2), 0x00003344);
+    }
+
+    #[test]
+    fn test_fat_entry_out_of_bounds() {
+        let fat_buf = [0u8; 8];
+        /* Try to read cluster that would be out of bounds */
+        let result = fat_entry(&fat_buf, 10);
+        assert_eq!(result, 0x0FFFFFFF);
+    }
+
+    #[test]
+    fn test_is_end_cluster() {
+        assert!(!is_end_cluster(0x0FFFF000));
+        assert!(!is_end_cluster(0x0FFFFFF0));
+        assert!(!is_end_cluster(0x0FFFFFF7));
+        assert!(is_end_cluster(0x0FFFFFF8));
+        assert!(is_end_cluster(0x0FFFFFF9));
+        assert!(is_end_cluster(0x0FFFFFFA));
+        assert!(is_end_cluster(0x0FFFFFFB));
+        assert!(is_end_cluster(0x0FFFFFFC));
+        assert!(is_end_cluster(0x0FFFFFFD));
+        assert!(is_end_cluster(0x0FFFFFFE));
+        assert!(is_end_cluster(0x0FFFFFFF));
+    }
+
+    #[test]
+    fn test_is_end_cluster_boundary() {
+        assert!(!is_end_cluster(0x0FFFFFF7));
+        assert!(is_end_cluster(0x0FFFFFF8));
+    }
+
+    #[test]
+    fn test_fat_entry_zero_value() {
+        let fat_buf = [0u8; 16];
+        let result = fat_entry(&fat_buf, 0);
+        assert_eq!(result, 0);
+    }
+
+    #[test]
+    fn test_fat_entry_all_ones() {
+        let mut fat_buf = [0xFFu8; 16];
+        let result = fat_entry(&fat_buf, 0);
+        /* 0xFFFFFFFF & 0x0FFFFFFF = 0x0FFFFFFF */
+        assert_eq!(result, 0x0FFFFFFF);
+    }
+}
