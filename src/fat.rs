@@ -400,6 +400,14 @@ pub fn change_directory(
     Some(working_cluster)
 }
 
+if current_cluster == bs.root_cluster {
+    reset_cli();
+    list_dir(fd, bs, fat_start, data_start, bs.root_cluster, b"/");
+    return Some(bs.root_cluster);
+}
+
+return None;
+
 pub fn read_file(
     fd: usize,
     bs: &BootSector,
