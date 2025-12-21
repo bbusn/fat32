@@ -251,24 +251,100 @@ pub fn change_directory(
     current_cluster: u32,
     dir_name: &[u8],
 ) -> Option<u32> {
-    /* Prepare lowercase search bytes for the requested dir name */
-    let mut lower_search = [0u8; 13];
-    let search_len = to_lowercase_ascii(dir_name, &mut lower_search);
-
-    /* Special cases: '.' -> stay, '..' -> parent */
-    if search_len == 1 && lower_search[0] == b'.' {
+    if dir_name.len() == 0 {
         return Some(current_cluster);
     }
 
-    /* If looking for parent, we still need to find the ".." entry in the current directory */
-    if search_len == 2 && lower_search[0] == b'.' && lower_search[1] == b'.' {
-        let found_parent = iterate_dir_entries::<u32, _>(
+    /* Determine starting cluster: absolute path if starts with '/' */
+    let mut working_cluster = if dir_name[0] == b'/' { bs.root_cluster } else { current_cluster };
+
+    /* If path is exactly "/" then list root */
+    if dir_name.len() == 1 && dir_name[0] == b'/' {
+        reset_cli();
+        list_dir(fd, bs, fat_start, data_start, bs.root_cluster, b"/");
+        return Some(bs.root_cluster);
+    }
+
+    /* Iterate over components separated by '/' */
+    let mut i = 0usize;
+    while i < dir_name.len() {
+        /* Skip consecutive slashes */
+        if dir_name[i] == b'/' {
+            i += 1;
+            continue;
+        }
+
+        /* Collect */
+        let start = i;
+        while i < dir_name.len() && dir_name[i] != b'/' {
+            i += 1;
+        }
+        let comp = &dir_name[start..i];
+
+        /* Normalize to lowercase */
+        let mut lower_comp = [0u8; 13];
+        let comp_len = to_lowercase_ascii(comp, &mut lower_comp);
+
+        /* '.' -> no-op */
+        if comp_len == 1 && lower_comp[0] == b'.' {
+            continue;
+        }
+
+        /* '..' -> find parent entry in current directory */
+        if comp_len == 2 && lower_comp[0] == b'.' && lower_comp[1] == b'.' {
+            let found_parent = iterate_dir_entries::<u32, _>(
+                fd,
+                bs,
+                fat_start,
+                data_start,
+                working_cluster,
+                |entry, _last| {
+                    let name = &entry[0..8];
+                    let ext = &entry[8..11];
+
+                    let mut out = [0u8; 13];
+                    let name_len = build_short_name(name, ext, &mut out);
+                    let name_bytes = &out[..name_len];
+
+                    let mut lower_name = [0u8; 13];
+                    let lower_len = to_lowercase_ascii(name_bytes, &mut lower_name);
+
+                    if lower_len == comp_len && &lower_name[..lower_len] == &lower_comp[..comp_len] {
+                        let cluster_low = u8_le_to_u16(&entry[26..28]) as u32;
+                        let cluster_high = u8_le_to_u16(&entry[20..22]) as u32;
+                        let target_cluster = (cluster_high << 16) | (cluster_low & 0xFFFF);
+                        return Some(target_cluster);
+                    }
+
+                    None
+                },
+            );
+
+            if let Some(mut target_cluster) = found_parent {
+                if target_cluster < 2 {
+                    target_cluster = bs.root_cluster;
+                }
+                working_cluster = target_cluster;
+                continue;
+            }
+
+            return None;
+        }
+
+        /* General case: find a matching subdirectory by name in working_cluster */
+        let found = iterate_dir_entries::<u32, _>(
             fd,
             bs,
             fat_start,
             data_start,
-            current_cluster,
+            working_cluster,
             |entry, _last| {
+                let attr = entry[11];
+                let is_dir = (attr & 0x10) != 0;
+                if !is_dir {
+                    return None;
+                }
+
                 let name = &entry[0..8];
                 let ext = &entry[8..11];
 
@@ -279,9 +355,7 @@ pub fn change_directory(
                 let mut lower_name = [0u8; 13];
                 let lower_len = to_lowercase_ascii(name_bytes, &mut lower_name);
 
-                if lower_len == search_len
-                    && &lower_name[..lower_len] == &lower_search[..search_len]
-                {
+                if lower_len == comp_len && &lower_name[..lower_len] == &lower_comp[..comp_len] {
                     let cluster_low = u8_le_to_u16(&entry[26..28]) as u32;
                     let cluster_high = u8_le_to_u16(&entry[20..22]) as u32;
                     let target_cluster = (cluster_high << 16) | (cluster_low & 0xFFFF);
@@ -292,83 +366,28 @@ pub fn change_directory(
             },
         );
 
-        if let Some(mut target_cluster) = found_parent {
-            if target_cluster < 2 {
-                target_cluster = bs.root_cluster;
-            }
-            reset_cli();
-
-            /* Print path: show root for root cluster, otherwise show '..' as we don't track full path */
-            if target_cluster == bs.root_cluster {
-                list_dir(fd, bs, fat_start, data_start, target_cluster, b"/");
-            } else {
-                list_dir(fd, bs, fat_start, data_start, target_cluster, b"/..");
-            }
-
-            return Some(target_cluster);
+        if let Some(target_cluster) = found {
+            working_cluster = target_cluster;
+            continue;
         }
 
         return None;
     }
 
-    /* General case: find a matching subdirectory by name */
-    let found = iterate_dir_entries::<u32, _>(
-        fd,
-        bs,
-        fat_start,
-        data_start,
-        current_cluster,
-        |entry, _last| {
-            let attr = entry[11];
-            /* 0x10 = directory flag */
-            let is_dir = (attr & 0x10) != 0;
-            if !is_dir {
-                return None;
-            }
+    /* At this point, working_cluster points to the target directory */
+    reset_cli();
 
-            let name = &entry[0..8];
-            let ext = &entry[8..11];
-
-            let mut out = [0u8; 13];
-            let name_len = build_short_name(name, ext, &mut out);
-            let name_bytes = &out[..name_len];
-
-            /* Convert to lowercase for comparison */
-            let mut lower_name = [0u8; 13];
-            let lower_len = to_lowercase_ascii(name_bytes, &mut lower_name);
-
-            /* Compare names */
-            if lower_len == search_len && &lower_name[..lower_len] == &lower_search[..search_len] {
-                /* Found the directory, extract cluster number (low and high 16-bit parts) */
-                let cluster_low = u8_le_to_u16(&entry[26..28]) as u32;
-                let cluster_high = u8_le_to_u16(&entry[20..22]) as u32;
-                let target_cluster = (cluster_high << 16) | (cluster_low & 0xFFFF);
-                return Some(target_cluster);
-            }
-
-            None
-        },
-    );
-
-    if let Some(target_cluster) = found {
-        /* Clear the screen and print the directory contents like `list_root` */
-        reset_cli();
-
-        /* Build a simple path string from the requested dir name */
-        let mut path_buf = [0u8; 64];
-        path_buf[0] = b'/';
-        let copy_len = core::cmp::min(search_len, path_buf.len() - 1);
-        for i in 0..copy_len {
-            path_buf[1 + i] = lower_search[i];
-        }
-        let path_slice = &path_buf[..1 + copy_len];
-
-        list_dir(fd, bs, fat_start, data_start, target_cluster, path_slice);
-
-        return Some(target_cluster);
+    /* Build printable path from original input */
+    let mut path_buf = [0u8; 64];
+    let copy_len = core::cmp::min(dir_name.len(), path_buf.len());
+    for j in 0..copy_len {
+        path_buf[j] = dir_name[j];
     }
+    let path_slice = &path_buf[..copy_len];
 
-    None
+    list_dir(fd, bs, fat_start, data_start, working_cluster, path_slice);
+
+    Some(working_cluster)
 }
 
 #[cfg(test)]
