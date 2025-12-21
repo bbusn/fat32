@@ -16,7 +16,7 @@ use core::panic::PanicInfo;
 use crate::cli::{CLI_NAME, print, print_bytes_hex, print_line, print_no_ln, reset_cli};
 use crate::sys::{close, exit, open, print_bytes, read, read_at};
 use boot_sector::{BootSector, parse_boot_sector, verify_boot_sector_signature};
-use fat::{change_directory, list_root, read_file};
+use fat::{change_directory, list_root, read_file, list_dir};
 
 /* When not testing, we need this func to call main for aarch64 */
 #[cfg(not(test))]
@@ -131,6 +131,13 @@ fn main() {
                     print("Folder not found");
                 }
             }
+            continue;
+        }
+
+        /* Handle `ls` with no arguments -> list current directory */
+        if len == 2 && buf[0] == b'l' && buf[1] == b's' {
+            reset_cli();
+            list_dir(fd as usize, &bs, fat_start as usize, data_start as usize, current_cluster, b"./");
             continue;
         }
 
